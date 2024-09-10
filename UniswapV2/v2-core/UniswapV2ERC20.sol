@@ -26,6 +26,13 @@ contract UniswapV2ERC20 is IUniswapV2ERC20 {
         assembly {
             chainId := chainid
         }
+        /**
+        DOMAIN_TYPEHASH
+        name
+        version
+        chainid
+        verifyingContract
+         */
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'),
@@ -78,6 +85,8 @@ contract UniswapV2ERC20 is IUniswapV2ERC20 {
         return true;
     }
 
+
+    //离线签名,节省gas
     function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external {
         require(deadline >= block.timestamp, 'UniswapV2: EXPIRED');
         bytes32 digest = keccak256(
