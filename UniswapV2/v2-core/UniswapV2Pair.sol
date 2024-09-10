@@ -62,6 +62,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         factory = msg.sender;
     }
 
+    //初始化pair合约里的两个token地址，这是在factory合约里中调用的
     // called once by the factory at time of deployment
     function initialize(address _token0, address _token1) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
@@ -71,9 +72,13 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     // update reserves and, on the first call per block, price accumulators
     function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+        //检查是否溢出2^122-1
         require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
+        // 确保时间戳在32位整数内
         uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+        //经过的时间
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
+
         if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
             // * never overflows, and + overflow is desired
             price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
