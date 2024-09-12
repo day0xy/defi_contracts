@@ -125,12 +125,14 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
            _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
+                        //amount0 * _totalSupply / _reserve0      ,  amount1 * _totalSupply / _reserve1
             liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
         }
         require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');
         _mint(to, liquidity);
 
         _update(balance0, balance1, _reserve0, _reserve1);
+                           //reserver0 * reserve1
         if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
         emit Mint(msg.sender, amount0, amount1);
     }
@@ -146,16 +148,27 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+
+        //amount0 = liquidity * balance0 / _totalSupply    
         amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
+
+        //amount1 = liquidity * balance1 / _totalSupply
         amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
         require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
         _burn(address(this), liquidity);
+        //销毁流动性，用户要取出他的token
+        //转移token到用户
         _safeTransfer(_token0, to, amount0);
         _safeTransfer(_token1, to, amount1);
+
+
+        // 更新流动性池子的余额
         balance0 = IERC20(_token0).balanceOf(address(this));
         balance1 = IERC20(_token1).balanceOf(address(this));
 
+        //内部的_update函数
         _update(balance0, balance1, _reserve0, _reserve1);
+        //如果手续费开启，更新kLast
         if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
         emit Burn(msg.sender, amount0, amount1, to);
     }
