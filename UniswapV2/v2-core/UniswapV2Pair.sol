@@ -176,6 +176,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // this low-level function should be called from a contract which performs important safety checks
     function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
         require(amount0Out > 0 || amount1Out > 0, 'UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT');
+        //避免多次读取变量。  节省gas
+        //局部变量存储在 EVM 的堆栈中
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UniswapV2: INSUFFICIENT_LIQUIDITY');
 
@@ -188,18 +190,34 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
         if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
         if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+        //查看当前地址的token0的balance
         balance0 = IERC20(_token0).balanceOf(address(this));
+        //查看当前地址的token1的balance
         balance1 = IERC20(_token1).balanceOf(address(this));
         }
+        //如果balance0 > _reserve0 - amount0Out，那么amount0In = balance0 - (_reserve0 - amount0Out) 否则 amount0In = 0
         uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+        //如果balance1 > _reserve1 - amount1Out，那么amount1In = balance1 - (_reserve1 - amount1Out) 否则 amount1In = 0
         uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
         require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
+
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
+
+        //因为手续费是千三，所以这里放大1000倍
+        //减去三是为了扣除0.3%的手续费
+        //balance0Adjusted = balance0 * 1000 - amount0In * 3
         uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
         uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
+
+        //require(balance0Adjusted * balance1Adjusted >= _reserve0 * _reserve1 * 1000**2)
+        // 这行代码确保调整后的余额乘积大于或等于交易前的储备量乘积乘以 1000**2。
+        // 乘以 1000**2 是为了将储备量放大，以便与调整后的余额进行比较。
+        // 如果不满足这个条件，交易将被拒绝，并抛出 'UniswapV2: K' 错误。
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UniswapV2: K');
         }
 
+        //更新balance和reserve
+        //更新合约里的时间戳和储备量，更新累计价格，计算TWAP，time-weighted average price
         _update(balance0, balance1, _reserve0, _reserve1);
         emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
