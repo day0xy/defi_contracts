@@ -39,6 +39,7 @@ library UniswapV2LiquidityMathLibrary {
         amountIn = leftSide.sub(rightSide);
     }
 
+    //套利后获取储备量
     // gets the reserves after an arbitrage moves the price to the profit-maximizing ratio given an externally observed true price
     function getReservesAfterArbitrage(
         address factory,
