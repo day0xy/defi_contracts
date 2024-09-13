@@ -235,7 +235,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             amount0Out > 0 || amount1Out > 0,
             "UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT"
         );
-        //避免多次读取变量。  节省gas
+        //避免多次读取变量。节省gas
         //局部变量存储在 EVM 的堆栈中
         (uint112 _reserve0, uint112 _reserve1, ) = getReserves(); // gas savings
         require(
@@ -246,6 +246,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint balance0;
         uint balance1;
         {
+            //限制作用域，防止堆栈太深导致错误
             // scope for _token{0,1}, avoids stack too deep errors
             address _token0 = token0;
             address _token1 = token1;
