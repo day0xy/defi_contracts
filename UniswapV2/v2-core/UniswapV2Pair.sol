@@ -189,20 +189,24 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         address _token1 = token1; // gas savings
         uint balance0 = IERC20(_token0).balanceOf(address(this));
         uint balance1 = IERC20(_token1).balanceOf(address(this));
+        //router合约里 removeLiquidity会把流动性代币转移到pair合约里
         uint liquidity = balanceOf[address(this)];
 
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
 
+        //按照流动性代币占比来确定用户应得的token数量
         //amount0 = liquidity * balance0 / _totalSupply
         amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
 
+        //按照流动性代币占比来确定用户应得的token数量
         //amount1 = liquidity * balance1 / _totalSupply
         amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
         require(
             amount0 > 0 && amount1 > 0,
             "UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED"
         );
+
         _burn(address(this), liquidity);
         //销毁流动性，用户要取出他的token
         //转移token到用户
