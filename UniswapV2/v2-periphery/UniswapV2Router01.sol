@@ -11,7 +11,6 @@ import "./interfaces/IWETH.sol";
 contract UniswapV2Router01 is IUniswapV2Router01 {
     address public immutable override factory;
     address public immutable override WETH;
-
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
         _;
@@ -133,7 +132,9 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
         IWETH(WETH).deposit{value: amountETH}();
         assert(IWETH(WETH).transfer(pair, amountETH));
+        //铸造流动性
         liquidity = IUniswapV2Pair(pair).mint(to);
+        //把多余的eth退回给用户
         if (msg.value > amountETH)
             TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH); // refund dust eth, if any
     }
@@ -148,9 +149,11 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         address to,
         uint deadline
     ) public override ensure(deadline) returns (uint amountA, uint amountB) {
+        //pairFor不需要进行链上存储读取操作，所以gas成本更低
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
+        //排序的目的是为了让生成的地址唯一且一致
         (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0
             ? (amount0, amount1)
@@ -271,6 +274,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
             (uint amount0Out, uint amount1Out) = input == token0
                 ? (uint(0), amountOut)
                 : (amountOut, uint(0));
+            // 如果当前步骤不是最后一步交换，则计算下一个交易对的地址作为接收地址；否则，使用 _to 作为接收地址。
             address to = i < path.length - 2
                 ? UniswapV2Library.pairFor(factory, output, path[i + 2])
                 : _to;
@@ -278,6 +282,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
                 .swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
+
     function swapExactTokensForTokens(
         uint amountIn,
         uint amountOutMin,
@@ -298,6 +303,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         );
         _swap(amounts, path, to);
     }
+
     function swapTokensForExactTokens(
         uint amountOut,
         uint amountInMax,
