@@ -71,6 +71,7 @@ library UniswapV2Library {
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    //给定一个amountIn,计算出令一个资产最大的amountOut
     function getAmountOut(
         uint amountIn,
         uint reserveIn,
@@ -81,12 +82,35 @@ library UniswapV2Library {
             reserveIn > 0 && reserveOut > 0,
             "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
         );
+
+        //下面是计算amountOut的推导过程
+        //reverseIn * reserveOut = (reverseIn + amountIn)*(reverseOut-amountOut)
+
+        //reverseIn * reverseOUt = reverseIn * reverseOut - reverseIn * amountOut + amountIn * reverseOUt - amountIn * amountOut
+
+        //amountIn * reserveOut = (reserveIn + amountIn) * amountOut
+
+        //amountOut = amountIn * reserveOut / (reserveIn + amountIn)
+
+        //另外加上0.3％的手续费
+        //amountIn = amountIn * 997 / 1000
+
+        // amountOut = (amountIn * 997 / 1000) * reserverOut / (reserveIn + amountIn * 997 / 1000)
+        // ->
+        // amountOut = amountIn * 997 * reserveOut / 1000 * (reserveIn + amountIn * 997 / 1000)
+        // ->
+        // amountOut = amountIn * 997 * reserveOut / (reserveIn * 1000 + amountIn * 997)
+
         uint amountInWithFee = amountIn.mul(997);
+        //分子
         uint numerator = amountInWithFee.mul(reserveOut);
+        //分母
         uint denominator = reserveIn.mul(1000).add(amountInWithFee);
+
         amountOut = numerator / denominator;
     }
 
+    //给定储备量和输出的token数量，计算出输入的token数量
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     function getAmountIn(
         uint amountOut,
@@ -98,11 +122,14 @@ library UniswapV2Library {
             reserveIn > 0 && reserveOut > 0,
             "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
         );
+        //公式推导和上面大致相同
         uint numerator = reserveIn.mul(amountOut).mul(1000);
         uint denominator = reserveOut.sub(amountOut).mul(997);
         amountIn = (numerator / denominator).add(1);
     }
 
+    // 根据路径计算AmountOut，PATH可能为[A,B,C]
+    // 每次兑换都要扣除0.3%的手续费，所以路径越长，实际扣减的交易手续费会更多
     // performs chained getAmountOut calculations on any number of pairs
     function getAmountsOut(
         address factory,

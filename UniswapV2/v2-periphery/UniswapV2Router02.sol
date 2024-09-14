@@ -35,6 +35,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address tokenB,
         uint amountADesired,
         uint amountBDesired,
+        //用户能接受的最小数量,一般是前端根据预期值和滑点值计算出来的
         uint amountAMin,
         uint amountBMin
     ) internal virtual returns (uint amountA, uint amountB) {
@@ -50,6 +51,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
+            //最佳amountB
             uint amountBOptimal = UniswapV2Library.quote(
                 amountADesired,
                 reserveA,
@@ -102,8 +104,11 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             amountBMin
         );
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
+        //这里不需要授权吗,应该前端时有个授权的过程
+        //确实，前端会有个钱包授权的过程
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
+        //把流动性代币mint到to地址
         liquidity = IUniswapV2Pair(pair).mint(to);
     }
 

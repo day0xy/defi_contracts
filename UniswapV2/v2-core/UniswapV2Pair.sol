@@ -246,6 +246,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint balance0;
         uint balance1;
         {
+            //花括号的作用
             //限制作用域，防止堆栈太深导致错误
             // scope for _token{0,1}, avoids stack too deep errors
             address _token0 = token0;
@@ -265,14 +266,24 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             //查看当前地址的token1的balance
             balance1 = IERC20(_token1).balanceOf(address(this));
         }
+
+        //balance0 = _reverse0 + (amount0In - amount0Out)
+        //balance1 = _reverse1 + (amount1In - amount1Out)
+
+        //所以 amount0In = balance0 - _reverse0 + amount0Out
+        //所以 amount1In = balance1 - _reverse1 + amount1Out
+
         //如果balance0 > _reserve0 - amount0Out，那么amount0In = balance0 - (_reserve0 - amount0Out) 否则 amount0In = 0
         uint amount0In = balance0 > _reserve0 - amount0Out
             ? balance0 - (_reserve0 - amount0Out)
             : 0;
+
         //如果balance1 > _reserve1 - amount1Out，那么amount1In = balance1 - (_reserve1 - amount1Out) 否则 amount1In = 0
+
         uint amount1In = balance1 > _reserve1 - amount1Out
             ? balance1 - (_reserve1 - amount1Out)
             : 0;
+
         require(
             amount0In > 0 || amount1In > 0,
             "UniswapV2: INSUFFICIENT_INPUT_AMOUNT"
@@ -285,17 +296,20 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             //减去三是为了扣除0.3%的手续费
             //balance0Adjusted = balance0 * 1000 - amount0In * 3
             uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
+            //balance1Adjusted = balance1 * 1000 - amount1In * 3
             uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
 
             //require(balance0Adjusted * balance1Adjusted >= _reserve0 * _reserve1 * 1000**2)
             // 这行代码确保调整后的余额乘积大于或等于交易前的储备量乘积乘以 1000**2。
             // 乘以 1000**2 是为了将储备量放大，以便与调整后的余额进行比较。
             // 如果不满足这个条件，交易将被拒绝，并抛出 'UniswapV2: K' 错误。
+
             require(
                 balance0Adjusted.mul(balance1Adjusted) >=
                     uint(_reserve0).mul(_reserve1).mul(1000 ** 2),
                 "UniswapV2: K"
             );
+
         }
 
         //更新balance和reserve
