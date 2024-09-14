@@ -48,16 +48,19 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             tokenA,
             tokenB
         );
+
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
             //最佳amountB
+            //这是根据公式计算出来的最佳amountB
             uint amountBOptimal = UniswapV2Library.quote(
                 amountADesired,
                 reserveA,
                 reserveB
             );
             if (amountBOptimal <= amountBDesired) {
+                //amountBMin<=amountBOptimal<=amountBDesired
                 require(
                     amountBOptimal >= amountBMin,
                     "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
@@ -70,6 +73,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
                     reserveA
                 );
                 assert(amountAOptimal <= amountADesired);
+                // amountAMin<=amountAOptimal<=amountADesired
                 require(
                     amountAOptimal >= amountAMin,
                     "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
@@ -95,6 +99,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         ensure(deadline)
         returns (uint amountA, uint amountB, uint liquidity)
     {
+        //计算出添加流动性的amountA和amountB
         (amountA, amountB) = _addLiquidity(
             tokenA,
             tokenB,

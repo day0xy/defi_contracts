@@ -196,11 +196,11 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
 
         //按照流动性代币占比来确定用户应得的token数量
-        //amount0 = liquidity * balance0 / _totalSupply
+        //amount0 = liquidity * (balance0 / _totalSupply)
         amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
 
         //按照流动性代币占比来确定用户应得的token数量
-        //amount1 = liquidity * balance1 / _totalSupply
+        //amount1 = liquidity * (balance1 / _totalSupply)
         amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
         require(
             amount0 > 0 && amount1 > 0,
@@ -309,7 +309,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
                     uint(_reserve0).mul(_reserve1).mul(1000 ** 2),
                 "UniswapV2: K"
             );
-
         }
 
         //更新balance和reserve

@@ -55,7 +55,7 @@ library UniswapV2Library {
             : (reserve1, reserve0);
     }
 
-    //根据恒定乘积公式，给定一个amountA,计算出amountB
+    //给定两个token的储备量，和一个token的数量，计算出另一个token的等值数量
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
     function quote(
         uint amountA,
@@ -71,7 +71,7 @@ library UniswapV2Library {
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
-    //给定一个amountIn,计算出令一个资产最大的amountOut
+    //给定一个amountIn,计算出另一个资产最大的amountOut
     function getAmountOut(
         uint amountIn,
         uint reserveIn,
