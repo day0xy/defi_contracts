@@ -169,21 +169,26 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
         //先把流动性代币转移到pair合约
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        //这里已经销毁流动性并且按照比例转移token到用户了
         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
         (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
+        //如果tokenA是token0，那么amountA=amount0，amountB=amount1，否则amountA=amount1，amountB=amount0
         (amountA, amountB) = tokenA == token0
             ? (amount0, amount1)
             : (amount1, amount0);
+        //判断是否满足最小数量
         require(
             amountA >= amountAMin,
             "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
         );
+        //判断是否满足最小数量
         require(
             amountB >= amountBMin,
             "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
         );
     }
 
+    //移除流动性，不过是ETH
     function removeLiquidityETH(
         address token,
         uint liquidity,
@@ -344,6 +349,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     // requires the initial amount to have already been sent to the first pair
     function _swap(
         uint[] memory amounts,
+        //path是前端计算出最佳路径的
         address[] memory path,
         address _to
     ) internal virtual {
@@ -535,6 +541,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     }
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
+    //需要先把初始数量发送到pair
     // requires the initial amount to have already been sent to the first pair
     function _swapSupportingFeeOnTransferTokens(
         address[] memory path,
@@ -551,6 +558,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             {
                 // scope to avoid stack too deep errors
                 (uint reserve0, uint reserve1, ) = pair.getReserves();
+                //如果input是token0，那么reserveInput=reserve0，reserveOutput=reserve1，否则reserveInput=reserve1，reserveOutput=reserve0
                 (uint reserveInput, uint reserveOutput) = input == token0
                     ? (reserve0, reserve1)
                     : (reserve1, reserve0);
@@ -563,6 +571,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
                     reserveOutput
                 );
             }
+            //如果input==token0，那么amount0Out=0，amount1Out=amountOutput，否则amount0Out=amountOutput，amount1Out=0
             (uint amount0Out, uint amount1Out) = input == token0
                 ? (uint(0), amountOutput)
                 : (amountOutput, uint(0));

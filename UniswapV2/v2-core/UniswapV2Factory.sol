@@ -32,12 +32,13 @@ contract UniswapV2Factory is IUniswapV2Factory {
 
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
 
-        //使用create2创建合约，确定合约地址
+        //使用create2salt创建合约，确定合约地址
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
 
         IUniswapV2Pair(pair).initialize(token0, token1);
+        //记录币对地址
         getPair[token0][token1] = pair;
         getPair[token1][token0] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);

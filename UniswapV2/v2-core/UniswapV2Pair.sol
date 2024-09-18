@@ -106,6 +106,10 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         //经过的时间
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
 
+        //price0 = reserve1 / reserve0
+        //price1 = reserve0 / reserve1
+        //price0CumulativeLast = price0 * timeElapsed + price0CumulativeLast
+        //price1CumulativeLast = price1* timeElapsed + price1CumulativeLast
         if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
             // * never overflows, and + overflow is desired
             price0CumulativeLast +=
