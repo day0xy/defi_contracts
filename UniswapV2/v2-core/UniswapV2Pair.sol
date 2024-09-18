@@ -236,7 +236,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
-    // this low-level function should be called from a contract which performs important safety checks function swap(
+    // this low-level function should be called from a contract which performs important safety checks
+    function swap(
         uint amount0Out,
         uint amount1Out,
         address to,
@@ -318,7 +319,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             // 2次方
             // 这行代码确保调整后的余额乘积大于或等于交易前的储备量乘积乘以 1000**2。
             // 乘以 1000**2 是为了将储备量放大，以便与调整后的余额进行比较。
-            // 如果不满足这个条件，交易将被拒绝，并抛出 'UniswapV2: K' 错误。
 
             //require(balance0Adjusted * balance1Adjusted >= _reserve0 * _reserve1 * 1000**2)
             require(
@@ -350,6 +350,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         );
     }
 
+    //把balance赋值给reserve
     // force reserves to match balances
     function sync() external lock {
         _update(
