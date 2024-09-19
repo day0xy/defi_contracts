@@ -86,6 +86,7 @@ library UniswapV2Library {
         //下面是计算amountOut的推导过程
         //reverseIn * reserveOut = (reverseIn + amountIn)*(reverseOut-amountOut)
 
+        //乘法分配律展开左边的式子
         //reverseIn * reverseOUt = reverseIn * reverseOut - reverseIn * amountOut + amountIn * reverseOUt - amountIn * amountOut
 
         //amountIn * reserveOut = (reserveIn + amountIn) * amountOut

@@ -43,6 +43,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
             IUniswapV2Factory(factory).createPair(tokenA, tokenB);
         }
+
         (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(
             factory,
             tokenA,
@@ -169,7 +170,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
         //先把流动性代币转移到pair合约
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        //这里已经销毁流动性并且按照比例转移token到用户了
+        //下面这行代码burn函数执行的时候已经销毁流动性并且按照比例转移token到用户了
         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
         (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
         //如果tokenA是token0，那么amountA=amount0，amountB=amount1，否则amountA=amount1，amountB=amount0
@@ -188,7 +189,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         );
     }
 
-    //移除流动性，不过是ETH
+    //移除流动性，不过不是ERC20，是ETH
     function removeLiquidityETH(
         address token,
         uint liquidity,
@@ -349,7 +350,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     // requires the initial amount to have already been sent to the first pair
     function _swap(
         uint[] memory amounts,
-        //path是前端计算出最佳路径的
+        //前端会计算出最佳路径
         address[] memory path,
         address _to
     ) internal virtual {
@@ -450,6 +451,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         );
         _swap(amounts, path, to);
     }
+
     function swapTokensForExactETH(
         uint amountOut,
         uint amountInMax,
@@ -479,6 +481,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
+
     function swapExactTokensForETH(
         uint amountIn,
         uint amountOutMin,
@@ -508,6 +511,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
+
     function swapETHForExactTokens(
         uint amountOut,
         address[] calldata path,
@@ -581,6 +585,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
+
     function swapExactTokensForTokensSupportingFeeOnTransferTokens(
         uint amountIn,
         uint amountOutMin,
@@ -602,6 +607,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
+
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
         uint amountOutMin,
         address[] calldata path,

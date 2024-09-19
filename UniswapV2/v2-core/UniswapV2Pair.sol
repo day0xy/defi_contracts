@@ -135,11 +135,17 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint _kLast = kLast; // gas savings
         if (feeOn) {
             if (_kLast != 0) {
+                //rootK = sqrt(_reserve0 * _reserve1)
                 uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
+                //rootKLast = sqrt(_kLast)
                 uint rootKLast = Math.sqrt(_kLast);
+
                 if (rootK > rootKLast) {
+                    //分子 = totalSupply * (rootK - rootKLast)
                     uint numerator = totalSupply.mul(rootK.sub(rootKLast));
+                    //分母 = rootK * 5 + rootKLast
                     uint denominator = rootK.mul(5).add(rootKLast);
+                    //流动性 = 分子 / 分母
                     uint liquidity = numerator / denominator;
                     if (liquidity > 0) _mint(feeTo, liquidity);
                 }
@@ -247,23 +253,19 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             amount0Out > 0 || amount1Out > 0,
             "UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT"
         );
-
-        //避免多次读取变量。节省gas
-        //局部变量存储在 EVM 的堆栈中
+        //避免多次读取变量,节省gas
+        //局部变量存储在EVM的堆栈中
         (uint112 _reserve0, uint112 _reserve1, ) = getReserves(); // gas savings
         require(
             amount0Out < _reserve0 && amount1Out < _reserve1,
             "UniswapV2: INSUFFICIENT_LIQUIDITY"
         );
-
         uint balance0;
         uint balance1;
-
         {
             //花括号的作用
             //限制作用域，防止堆栈太深导致错误
             // scope for _token{0,1}, avoids stack too deep errors
-
             address _token0 = token0;
             address _token1 = token1;
             require(to != _token0 && to != _token1, "UniswapV2: INVALID_TO");
@@ -289,6 +291,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         //所以 amount1In = balance1 - _reverse1 + amount1Out
 
         //如果balance0 > _reserve0 - amount0Out，那么amount0In = balance0 - (_reserve0 - amount0Out) 否则 amount0In = 0
+
         uint amount0In = balance0 > _reserve0 - amount0Out
             ? balance0 - (_reserve0 - amount0Out)
             : 0;
