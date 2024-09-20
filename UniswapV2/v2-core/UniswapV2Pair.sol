@@ -278,9 +278,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
                     amount1Out,
                     data
                 );
-            //查看当前地址的token0的balance
+
             balance0 = IERC20(_token0).balanceOf(address(this));
-            //查看当前地址的token1的balance
             balance1 = IERC20(_token1).balanceOf(address(this));
         }
 

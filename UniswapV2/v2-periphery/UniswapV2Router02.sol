@@ -54,7 +54,6 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
             //最佳amountB
-            //这是根据公式计算出来的最佳amountB
             uint amountBOptimal = UniswapV2Library.quote(
                 amountADesired,
                 reserveA,
