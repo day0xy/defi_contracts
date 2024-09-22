@@ -89,6 +89,18 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         token1 = _token1;
     }
 
+    /**
+        读取blocktimestamp
+        计算timeElapsed
+        更新累计价格 = price*timeElapsed
+
+        更新reserve和timestamplast
+    
+
+        TWAP = 累计价格2-累计价格1/时间2-时间1
+
+    
+     */
     // update reserves and, on the first call per block, price accumulators
     function _update(
         uint balance0,
@@ -121,6 +133,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         }
         reserve0 = uint112(balance0);
         reserve1 = uint112(balance1);
+        //这里重置为当前时间，所以前面的代码timeElapsed就归零了，下次调用_update函数时，会重新计算
         blockTimestampLast = blockTimestamp;
         emit Sync(reserve0, reserve1);
     }
@@ -212,11 +225,11 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
 
         //按照流动性代币占比来确定用户应得的token数量
-        //amount0 = liquidity / _totalSupply * balance0
+        //amount0 = balance0 * liquidity / _totalSupply
         amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
 
         //按照流动性代币占比来确定用户应得的token数量
-        //amount1 = liquidity / _totalSupply * balance1
+        //amount1 = balance1 *  liquidity / _totalSupply
         amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
         require(
             amount0 > 0 && amount1 > 0,
@@ -283,19 +296,11 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             balance1 = IERC20(_token1).balanceOf(address(this));
         }
 
-        //balance0 = _reverse0 + (amount0In - amount0Out)
-        //balance1 = _reverse1 + (amount1In - amount1Out)
-
-        //所以 amount0In = balance0 - _reverse0 + amount0Out
-        //所以 amount1In = balance1 - _reverse1 + amount1Out
-
-        //如果balance0 > _reserve0 - amount0Out，那么amount0In = balance0 - (_reserve0 - amount0Out) 否则 amount0In = 0
-
+        //balance0 = reserve0+amount0In-amount0Out
+        //公式推导即可得出
         uint amount0In = balance0 > _reserve0 - amount0Out
             ? balance0 - (_reserve0 - amount0Out)
             : 0;
-
-        //如果balance1 > _reserve1 - amount1Out，那么amount1In = balance1 - (_reserve1 - amount1Out) 否则 amount1In = 0
 
         uint amount1In = balance1 > _reserve1 - amount1Out
             ? balance1 - (_reserve1 - amount1Out)
