@@ -38,12 +38,15 @@ contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegat
         uint24 fee
     ) external override noDelegateCall returns (address pool) {
         require(tokenA != tokenB);
+        //和uniswapV2一样,排序token,为的是生成的pair地址一致
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0));
         int24 tickSpacing = feeAmountTickSpacing[fee];
         require(tickSpacing != 0);
         require(getPool[token0][token1][fee] == address(0));
+        //生成pool地址
         pool = deploy(address(this), token0, token1, fee, tickSpacing);
+        //映射两个token对应的pool地址
         getPool[token0][token1][fee] = pool;
         // populate mapping in the reverse direction, deliberate choice to avoid the cost of comparing addresses
         getPool[token1][token0][fee] = pool;
