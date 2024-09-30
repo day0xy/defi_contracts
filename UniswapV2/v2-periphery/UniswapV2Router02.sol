@@ -109,8 +109,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             amountBMin
         );
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
-        //这里不需要授权吗,应该前端时有个授权的过程
-        //确实，前端会有个钱包授权的过程
+        //前端会有个钱包授权的过程
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
         //把流动性代币mint到to地址
