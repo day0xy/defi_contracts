@@ -16,6 +16,7 @@ import {IERC721Errors} from "../../interfaces/draft-IERC6093.sol";
  * the Metadata extension, but not including the Enumerable extension, which is available separately as
  * {ERC721Enumerable}.
  */
+
 abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Errors {
     using Strings for uint256;
 
