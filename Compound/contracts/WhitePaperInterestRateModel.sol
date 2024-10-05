@@ -53,6 +53,8 @@ contract WhitePaperInterestRateModel is InterestRateModel {
             return 0;
         }
 
+        //借出去的钱*BASE/(现金+借出去的钱-储备)
+        //储备，这一部分钱不能借出去
         return borrows * BASE / (cash + borrows - reserves);
     }
 
@@ -76,6 +78,7 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      * @param reserveFactorMantissa The current reserve factor for the market
      * @return The supply rate percentage per block as a mantissa (scaled by BASE)
      */
+    //计算存款利率
     function getSupplyRate(uint cash, uint borrows, uint reserves, uint reserveFactorMantissa) override public view returns (uint) {
         uint oneMinusReserveFactor = BASE - reserveFactorMantissa;
         uint borrowRate = getBorrowRate(cash, borrows, reserves);
