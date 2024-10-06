@@ -668,6 +668,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
+                wrt意思是 with respect to
      * @notice Determine the current account liquidity wrt collateral requirements
      * @return (possible error code (semi-opaque),
                 account liquidity in excess of collateral requirements,
@@ -1185,6 +1186,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
      * @param cToken The market whose supply index to update
      * @dev Index is a cumulative sum of the COMP per cToken accrued.
      */
+    //更新comp供应指数
     function updateCompSupplyIndex(address cToken) internal {
         CompMarketState storage supplyState = compSupplyState[cToken];
         uint supplySpeed = compSupplySpeeds[cToken];

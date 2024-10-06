@@ -131,12 +131,18 @@ abstract contract BaseJumpRateModelV2 is InterestRateModel {
         //利用率
         uint util = utilizationRate(cash, borrows, reserves);
 
+        //没有超出kink点
+        //这里的BASE是用来控制精度的
         if (util <= kink) {
+            //rate=(util* multiplierPerBlock / BASE) + baseRatePerBlock
             return ((util * multiplierPerBlock) / BASE) + baseRatePerBlock;
         } else {
+            //计算normalRate
             uint normalRate = ((kink * multiplierPerBlock) / BASE) +
                 baseRatePerBlock;
+            //计算超出kink点的利率
             uint excessUtil = util - kink;
+            //rate=(excessUtil * jumpMultiplierPerBlock / BASE) + normalRate
             return ((excessUtil * jumpMultiplierPerBlock) / BASE) + normalRate;
         }
     }
