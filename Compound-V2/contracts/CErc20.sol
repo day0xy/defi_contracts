@@ -158,6 +158,7 @@ contract CErc20 is CToken, CErc20Interface {
      *      Note: This wrapper safely handles non-standard ERC-20 tokens that do not return a value.
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
+
     function doTransferIn(address from, uint amount) virtual override internal returns (uint) {
         // Read from storage once
         address underlying_ = underlying;
@@ -179,6 +180,7 @@ contract CErc20 is CToken, CErc20Interface {
                     revert(0, 0)
                 }
         }
+
         require(success, "TOKEN_TRANSFER_IN_FAILED");
 
         // Calculate the amount that was *actually* transferred

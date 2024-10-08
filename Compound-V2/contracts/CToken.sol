@@ -702,6 +702,7 @@ abstract contract CToken is CTokenInterface, ExponentialNoError, TokenErrorRepor
         uint totalBorrowsNew = totalBorrows - actualRepayAmount;
 
         /* We write the previously calculated values into storage */
+        //
         accountBorrows[borrower].principal = accountBorrowsNew;
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows = totalBorrowsNew;
@@ -780,9 +781,11 @@ abstract contract CToken is CTokenInterface, ExponentialNoError, TokenErrorRepor
         // (No safe failures beyond this point)
 
         /* We calculate the number of collateral tokens that will be seized */
+        //计算可以清算可以获取的抵押品数量
         (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(address(this), address(cTokenCollateral), actualRepayAmount);
         require(amountSeizeError == NO_ERROR, "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
+        //检查清算获得的抵押品数量，是否超过了借款人的抵押品数量
         /* Revert if borrower collateral token balance < seizeTokens */
         require(cTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
 
@@ -838,10 +841,20 @@ abstract contract CToken is CTokenInterface, ExponentialNoError, TokenErrorRepor
          *  borrowerTokensNew = accountTokens[borrower] - seizeTokens
          *  liquidatorTokensNew = accountTokens[liquidator] + seizeTokens
          */
+
+        //seizeTokens * protocolSeizeShareMantissa
+
+        /**
+        //添加到储备金的份额,协议也会收取一部分
+        * @notice Share of seized collateral that is added to reserves
+        */
+        // uint public constant protocolSeizeShareMantissa = 2.8e16; //2.8%
+
         uint protocolSeizeTokens = mul_(seizeTokens, Exp({mantissa: protocolSeizeShareMantissa}));
         uint liquidatorSeizeTokens = seizeTokens - protocolSeizeTokens;
         Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
         uint protocolSeizeAmount = mul_ScalarTruncate(exchangeRate, protocolSeizeTokens);
+        //添加到储备金里
         uint totalReservesNew = totalReserves + protocolSeizeAmount;
 
 
