@@ -7,6 +7,7 @@ import "./InterestRateModel.sol";
   * @title Compound's JumpRateModel Contract
   * @author Compound
   */
+
 contract JumpRateModel is InterestRateModel {
     event NewInterestParams(uint baseRatePerBlock, uint multiplierPerBlock, uint jumpMultiplierPerBlock, uint kink);
 
@@ -30,11 +31,13 @@ contract JumpRateModel is InterestRateModel {
     /**
      * @notice The multiplierPerBlock after hitting a specified utilization point
      */
+    //到达kink点之后的利率增长率
     uint public jumpMultiplierPerBlock;
 
     /**
      * @notice The utilization point at which the jump multiplier is applied
      */
+    //利率条约点
     uint public kink;
 
     /**
@@ -79,11 +82,17 @@ contract JumpRateModel is InterestRateModel {
     function getBorrowRate(uint cash, uint borrows, uint reserves) override public view returns (uint) {
         uint util = utilizationRate(cash, borrows, reserves);
 
+        //多了一个kink的比较
         if (util <= kink) {
+            //(利用率*利率增长率）/BASE + 每个块的基础利率
             return (util * multiplierPerBlock / BASE) + baseRatePerBlock;
         } else {
+            //normalRate
             uint normalRate = (kink * multiplierPerBlock / BASE) + baseRatePerBlock;
+            //超出的利用率
             uint excessUtil = util - kink;
+
+            //借款利率 = (超出的利用率 * jumpMultiplierPerBlock)/BASE + normalRate
             return (excessUtil * jumpMultiplierPerBlock/ BASE) + normalRate;
         }
     }

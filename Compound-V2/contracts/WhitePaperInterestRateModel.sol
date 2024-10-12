@@ -47,6 +47,7 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      * @param reserves The amount of reserves in the market (currently unused)
      * @return The utilization rate as a mantissa between [0, BASE]
      */
+    //利用率
     function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint) {
         // Utilization rate is 0 when there are no borrows
         if (borrows == 0) {
@@ -65,8 +66,11 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      * @param reserves The amount of reserves in the market
      * @return The borrow rate percentage per block as a mantissa (scaled by BASE)
      */
+    //计算借款利率
     function getBorrowRate(uint cash, uint borrows, uint reserves) override public view returns (uint) {
+        //
         uint ur = utilizationRate(cash, borrows, reserves);
+        //（利用率*每个块的利率增长率）/BASE+每个块的基础利率
         return (ur * multiplierPerBlock / BASE) + baseRatePerBlock;
     }
 
@@ -80,9 +84,17 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      */
     //计算存款利率
     function getSupplyRate(uint cash, uint borrows, uint reserves, uint reserveFactorMantissa) override public view returns (uint) {
+        //ReserveFactor是储备利率，平台要将一部分利息收入，作为储备金存起来，应对市场波动风险
+        //储备因子是一个比例，决定了有多少利息中有多少部分被分配给储备金
+
+
+        //1-储备因子，用于计算实际分配给资金池的利率
         uint oneMinusReserveFactor = BASE - reserveFactorMantissa;
+        //获取借款利率
         uint borrowRate = getBorrowRate(cash, borrows, reserves);
+        //分配给资金池的利率 = 借款利率*（1-储备因子）/BASE
         uint rateToPool = borrowRate * oneMinusReserveFactor / BASE;
+        //返回存款利率 = 利用率 * 分配给资金池的利率 / BASE
         return utilizationRate(cash, borrows, reserves) * rateToPool / BASE;
     }
 }

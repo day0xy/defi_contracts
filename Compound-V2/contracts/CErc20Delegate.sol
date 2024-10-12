@@ -33,6 +33,7 @@ contract CErc20Delegate is CErc20, CDelegateInterface {
     /**
      * @notice Called by the delegator on a delegate to forfeit its responsibility
      */
+    //代理合约放弃其职责
     function _resignImplementation() virtual override public {
         // Shh -- we don't ever want this hook to be marked pure
         if (false) {

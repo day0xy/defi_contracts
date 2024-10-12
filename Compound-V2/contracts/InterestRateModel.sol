@@ -5,6 +5,8 @@ pragma solidity ^0.8.10;
   * @title Compound's InterestRateModel Interface
   * @author Compound
   */
+
+//这个合约定义了两个接口，一个是获取借款利率，一个是获取存款利率
 abstract contract InterestRateModel {
     /// @notice Indicator that this is an InterestRateModel contract (for inspection)
     bool public constant isInterestRateModel = true;
