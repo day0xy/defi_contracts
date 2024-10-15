@@ -108,6 +108,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
    * @param reserveFactor The reserve portion of the interest that goes to the treasury of the market
    * @return The liquidity rate, the stable borrow rate and the variable borrow rate
    **/
+  //计算利率
   function calculateInterestRates(
     address reserve,
     address aToken,
@@ -131,6 +132,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
     //avoid stack too deep
     availableLiquidity = availableLiquidity.add(liquidityAdded).sub(liquidityTaken);
 
+    //重载调用，函数的参数不一样，重载了
     return
       calculateInterestRates(
         reserve,
@@ -162,6 +164,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
    * @param reserveFactor The reserve portion of the interest that goes to the treasury of the market
    * @return The liquidity rate, the stable borrow rate and the variable borrow rate
    **/
+  //这个函数是重载的实现
   function calculateInterestRates(
     address reserve,
     uint256 availableLiquidity,
@@ -181,18 +184,22 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
   {
     CalcInterestRatesLocalVars memory vars;
 
+    //总的债务 = 固定利率债务 + 浮动利率债务
     vars.totalDebt = totalStableDebt.add(totalVariableDebt);
     vars.currentVariableBorrowRate = 0;
     vars.currentStableBorrowRate = 0;
     vars.currentLiquidityRate = 0;
 
+    //利用率
     vars.utilizationRate = vars.totalDebt == 0
       ? 0
       : vars.totalDebt.rayDiv(availableLiquidity.add(vars.totalDebt));
 
+    //当前的固定利率借款利率
     vars.currentStableBorrowRate = ILendingRateOracle(addressesProvider.getLendingRateOracle())
       .getMarketBorrowRate(reserve);
 
+    //实现了白皮书上的二段式利率定价过程
     if (vars.utilizationRate > OPTIMAL_UTILIZATION_RATE) {
       uint256 excessUtilizationRateRatio =
         vars.utilizationRate.sub(OPTIMAL_UTILIZATION_RATE).rayDiv(EXCESS_UTILIZATION_RATE);
@@ -213,6 +220,7 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
       );
     }
 
+    //计算当前的流动性利率
     vars.currentLiquidityRate = _getOverallBorrowRate(
       totalStableDebt,
       totalVariableDebt,
@@ -248,10 +256,16 @@ contract DefaultReserveInterestRateStrategy is IReserveInterestRateStrategy {
 
     if (totalDebt == 0) return 0;
 
+    //将总可变债务从 WAD（18 位小数）转换为 RAY（27 位小数）。
+    //计算加权可变利率，即总可变债务乘以当前可变借款利率。
     uint256 weightedVariableRate = totalVariableDebt.wadToRay().rayMul(currentVariableBorrowRate);
+    
 
+    //将总稳定债务从 WAD 转换为 RAY。
+    //计算加权稳定利率，即总稳定债务乘以当前加权平均稳定借款利率。
     uint256 weightedStableRate = totalStableDebt.wadToRay().rayMul(currentAverageStableBorrowRate);
 
+    //将加权可变利率和加权稳定利率相加的总和除以总债务（转换为 RAY），得到总体借款利率。
     uint256 overallBorrowRate =
       weightedVariableRate.add(weightedStableRate).rayDiv(totalDebt.wadToRay());
 

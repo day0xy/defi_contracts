@@ -2,10 +2,12 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+//openzeppelin imports
 import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
 import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
 import {SafeERC20} from '../../dependencies/openzeppelin/contracts/SafeERC20.sol';
 import {Address} from '../../dependencies/openzeppelin/contracts/Address.sol';
+
 import {ILendingPoolAddressesProvider} from '../../interfaces/ILendingPoolAddressesProvider.sol';
 import {IAToken} from '../../interfaces/IAToken.sol';
 import {IVariableDebtToken} from '../../interfaces/IVariableDebtToken.sol';
@@ -101,26 +103,32 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
    * @param referralCode Code used to register the integrator originating the operation, for potential rewards.
    *   0 if the action is executed directly by the user, without any middle-man
    **/
+  //用户存款
+  //存多少个基础token，就给几个aToken
   function deposit(
     address asset,
     uint256 amount,
+    //接收地址
     address onBehalfOf,
     uint16 referralCode
   ) external override whenNotPaused {
     DataTypes.ReserveData storage reserve = _reserves[asset];
 
+    //检查一下
     ValidationLogic.validateDeposit(reserve, amount);
 
     address aToken = reserve.aTokenAddress;
 
     reserve.updateState();
-    reserve.updateInterestRates(asset, aToken, amount, 0);
+    reserve.updateInterestRates(asset, aToken, amount, 0); //更新固定利率和浮动利率
 
     IERC20(asset).safeTransferFrom(msg.sender, aToken, amount);
 
+    //根据liquidity.index铸造aToken转入用户账户地址
     bool isFirstDeposit = IAToken(aToken).mint(onBehalfOf, amount, reserve.liquidityIndex);
 
     if (isFirstDeposit) {
+      // 设置用户存入的金额可以作为借贷抵押品
       _usersConfig[onBehalfOf].setUsingAsCollateral(reserve.id, true);
       emit ReserveUsedAsCollateralEnabled(asset, onBehalfOf);
     }
@@ -148,6 +156,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
 
     address aToken = reserve.aTokenAddress;
 
+    //查看用户aToken余额
     uint256 userBalance = IAToken(aToken).balanceOf(msg.sender);
 
     uint256 amountToWithdraw = amount;
@@ -156,6 +165,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
       amountToWithdraw = userBalance;
     }
 
+    //检查是否允许提现
     ValidationLogic.validateWithdraw(
       asset,
       amountToWithdraw,
@@ -176,6 +186,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
       emit ReserveUsedAsCollateralDisabled(asset, msg.sender);
     }
 
+    //burn掉用户的aToken余额,同时转移基础资产。burn函数内同时进行burn和转移基础资产
     IAToken(aToken).burn(msg.sender, to, amountToWithdraw, reserve.liquidityIndex);
 
     emit Withdraw(asset, msg.sender, to, amountToWithdraw);
@@ -198,6 +209,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
    * calling the function if he wants to borrow against his own collateral, or the address of the credit delegator
    * if he has been given credit delegation allowance
    **/
+  //当用户抵押品足够时，或者被授予足够的信用额度时，允许用户借入特定数量的储备基础资产
   function borrow(
     address asset,
     uint256 amount,
@@ -223,6 +235,9 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
 
   /**
    * @notice Repays a borrowed `amount` on a specific reserve, burning the equivalent debt tokens owned
+   //用户还款100 USDC，销毁100个固定利率或者浮动利率的债务token
+
+  
    * - E.g. User repays 100 USDC, burning 100 variable/stable debt tokens of the `onBehalfOf` address
    * @param asset The address of the borrowed underlying asset previously borrowed
    * @param amount The amount to repay
@@ -241,10 +256,13 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
   ) external override whenNotPaused returns (uint256) {
     DataTypes.ReserveData storage reserve = _reserves[asset];
 
+    //获取用户的当前债务
     (uint256 stableDebt, uint256 variableDebt) = Helpers.getUserCurrentDebt(onBehalfOf, reserve);
 
+    //获取利率模型
     DataTypes.InterestRateMode interestRateMode = DataTypes.InterestRateMode(rateMode);
 
+    //还款检查
     ValidationLogic.validateRepay(
       reserve,
       amount,
@@ -254,6 +272,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
       variableDebt
     );
 
+    //偿还数量
     uint256 paybackAmount =
       interestRateMode == DataTypes.InterestRateMode.STABLE ? stableDebt : variableDebt;
 
@@ -263,9 +282,12 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
 
     reserve.updateState();
 
+    //不同的利率模型
     if (interestRateMode == DataTypes.InterestRateMode.STABLE) {
+      //burn stable token
       IStableDebtToken(reserve.stableDebtTokenAddress).burn(onBehalfOf, paybackAmount);
     } else {
+      //burn variable token
       IVariableDebtToken(reserve.variableDebtTokenAddress).burn(
         onBehalfOf,
         paybackAmount,
@@ -290,6 +312,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
   }
 
   /**
+  //允许借款人在稳定和浮动利率之间交换债务
    * @dev Allows a borrower to swap his debt between stable and variable mode, or viceversa
    * @param asset The address of the underlying asset borrowed
    * @param rateMode The rate mode that the user wants to swap to
@@ -422,6 +445,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
    * @param receiveAToken `true` if the liquidators wants to receive the collateral aTokens, `false` if he wants
    * to receive the underlying collateral asset directly
    **/
+  //清算
   function liquidationCall(
     address collateralAsset,
     address debtAsset,
@@ -858,11 +882,13 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
 
     address oracle = _addressesProvider.getPriceOracle();
 
+    //amountInETH = amount * price / 10^decimals
     uint256 amountInETH =
       IPriceOracleGetter(oracle).getAssetPrice(vars.asset).mul(vars.amount).div(
         10**reserve.configuration.getDecimals()
       );
 
+    //校验借款
     ValidationLogic.validateBorrow(
       vars.asset,
       reserve,
@@ -883,6 +909,8 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
     uint256 currentStableRate = 0;
 
     bool isFirstBorrowing = false;
+    
+    //如果是固定利率
     if (DataTypes.InterestRateMode(vars.interestRateMode) == DataTypes.InterestRateMode.STABLE) {
       currentStableRate = reserve.currentStableBorrowRate;
 
@@ -893,6 +921,7 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
         currentStableRate
       );
     } else {
+      //如果是浮动利率
       isFirstBorrowing = IVariableDebtToken(reserve.variableDebtTokenAddress).mint(
         vars.user,
         vars.onBehalfOf,
@@ -901,10 +930,12 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
       );
     }
 
+    //如果是第一次借款，设置用户的借款状态
     if (isFirstBorrowing) {
       userConfig.setBorrowing(reserve.id, true);
     }
 
+    //更新利率
     reserve.updateInterestRates(
       vars.asset,
       vars.aTokenAddress,
@@ -912,7 +943,9 @@ contract LendingPool is VersionedInitializable, ILendingPool, LendingPoolStorage
       vars.releaseUnderlying ? vars.amount : 0
     );
 
+
     if (vars.releaseUnderlying) {
+      //转移AToken到用户账户
       IAToken(vars.aTokenAddress).transferUnderlyingTo(vars.user, vars.amount);
     }
 

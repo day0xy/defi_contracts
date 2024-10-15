@@ -15,6 +15,7 @@ import {Errors} from '../libraries/helpers/Errors.sol';
  * at stable rate mode
  * @author Aave
  **/
+
 contract StableDebtToken is IStableDebtToken, DebtTokenBase {
   using WadRayMath for uint256;
 
@@ -145,6 +146,7 @@ contract StableDebtToken is IStableDebtToken, DebtTokenBase {
       _decreaseBorrowAllowance(onBehalfOf, user, amount);
     }
 
+    //计算余额增加量
     (, uint256 currentBalance, uint256 balanceIncrease) = _calculateBalanceIncrease(onBehalfOf);
 
     vars.previousSupply = totalSupply();
@@ -159,9 +161,11 @@ contract StableDebtToken is IStableDebtToken, DebtTokenBase {
       .rayDiv(currentBalance.add(amount).wadToRay());
 
     require(vars.newStableRate <= type(uint128).max, Errors.SDT_STABLE_DEBT_OVERFLOW);
+
     _usersStableRate[onBehalfOf] = vars.newStableRate;
 
     //solium-disable-next-line
+    //链式赋值
     _totalSupplyTimestamp = _timestamps[onBehalfOf] = uint40(block.timestamp);
 
     // Calculates the updated average stable rate
@@ -195,6 +199,7 @@ contract StableDebtToken is IStableDebtToken, DebtTokenBase {
    * @param amount The amount of debt tokens getting burned
    **/
   function burn(address user, uint256 amount) external override onlyLendingPool {
+    //计算余额增加量
     (, uint256 currentBalance, uint256 balanceIncrease) = _calculateBalanceIncrease(user);
 
     uint256 previousSupply = totalSupply();

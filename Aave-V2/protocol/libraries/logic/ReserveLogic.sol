@@ -54,6 +54,7 @@ library ReserveLogic {
    * @param reserve The reserve object
    * @return the normalized income. expressed in ray
    **/
+  //获取储备的标准化收入
   function getNormalizedIncome(DataTypes.ReserveData storage reserve)
     internal
     view
@@ -195,6 +196,7 @@ library ReserveLogic {
    * @param liquidityAdded The amount of liquidity added to the protocol (deposit or repay) in the previous action
    * @param liquidityTaken The amount of liquidity taken from the protocol (redeem or borrow)
    **/
+  //更新当前的固定借贷利率、当前的可变借贷利率和当前的流动性利率
   function updateInterestRates(
     DataTypes.ReserveData storage reserve,
     address reserveAddress,
@@ -204,22 +206,27 @@ library ReserveLogic {
   ) internal {
     UpdateInterestRatesLocalVars memory vars;
 
+    //获取固定利率借贷token地址
     vars.stableDebtTokenAddress = reserve.stableDebtTokenAddress;
 
+    //获取总的固定利率债务和平均固定利率
     (vars.totalStableDebt, vars.avgStableRate) = IStableDebtToken(vars.stableDebtTokenAddress)
       .getTotalSupplyAndAvgRate();
 
     //calculates the total variable debt locally using the scaled total supply instead
     //of totalSupply(), as it's noticeably cheaper. Also, the index has been
     //updated by the previous updateState() call
+    //获取总的浮动利率债务
     vars.totalVariableDebt = IVariableDebtToken(reserve.variableDebtTokenAddress)
       .scaledTotalSupply()
+      //乘以当前的浮动利率指数
       .rayMul(reserve.variableBorrowIndex);
 
     (
-      vars.newLiquidityRate,
-      vars.newStableRate,
-      vars.newVariableRate
+      vars.newLiquidityRate, //新的流动性利率
+      vars.newStableRate, //新的固定利率
+      vars.newVariableRate //新的浮动利率
+      //计算新的利率
     ) = IReserveInterestRateStrategy(reserve.interestRateStrategyAddress).calculateInterestRates(
       reserveAddress,
       aTokenAddress,
@@ -230,6 +237,8 @@ library ReserveLogic {
       vars.avgStableRate,
       reserve.configuration.getReserveFactor()
     );
+
+    //确保不溢出128位
     require(vars.newLiquidityRate <= type(uint128).max, Errors.RL_LIQUIDITY_RATE_OVERFLOW);
     require(vars.newStableRate <= type(uint128).max, Errors.RL_STABLE_BORROW_RATE_OVERFLOW);
     require(vars.newVariableRate <= type(uint128).max, Errors.RL_VARIABLE_BORROW_RATE_OVERFLOW);
@@ -238,6 +247,7 @@ library ReserveLogic {
     reserve.currentStableBorrowRate = uint128(vars.newStableRate);
     reserve.currentVariableBorrowRate = uint128(vars.newVariableRate);
 
+    //触发储备更新事件
     emit ReserveDataUpdated(
       reserveAddress,
       vars.newLiquidityRate,
@@ -249,22 +259,21 @@ library ReserveLogic {
   }
 
   struct MintToTreasuryLocalVars {
-    uint256 currentStableDebt;
-    uint256 principalStableDebt;
-    uint256 previousStableDebt;
-    uint256 currentVariableDebt;
-    uint256 previousVariableDebt;
-    uint256 avgStableRate;
-    uint256 cumulatedStableInterest;
-    uint256 totalDebtAccrued;
-    uint256 amountToMint;
-    uint256 reserveFactor;
-    uint40 stableSupplyUpdatedTimestamp;
+    uint256 currentStableDebt; //当前的债务总量
+    uint256 principalStableDebt; //固定利率债务的本金部分
+    uint256 previousStableDebt; //之前的固定利率债务
+    uint256 currentVariableDebt; //当前的浮动利率债务
+    uint256 previousVariableDebt; //之前的浮动利率债务
+    uint256 avgStableRate;//平均固定利率
+    uint256 cumulatedStableInterest; //固定利率的累计利息
+    uint256 totalDebtAccrued; //总的债务累计
+    uint256 amountToMint; //需要铸造的数量
+    uint256 reserveFactor; //储备因子
+    uint40 stableSupplyUpdatedTimestamp; ///固定利率债务的最后更新时间
   }
 
   /**
-   * @dev Mints part of the repaid interest to the reserve treasury as a function of the reserveFactor for the
-   * specific asset.
+   * @dev Mints part of the repaid interest to the reserve treasury as a function of the reserveFactor for the specific asset.
    * @param reserve The reserve reserve to be updated
    * @param scaledVariableDebt The current scaled total variable debt
    * @param previousVariableBorrowIndex The variable borrow index before the last accumulation of the interest
@@ -281,6 +290,7 @@ library ReserveLogic {
   ) internal {
     MintToTreasuryLocalVars memory vars;
 
+    //获取储备因子
     vars.reserveFactor = reserve.configuration.getReserveFactor();
 
     if (vars.reserveFactor == 0) {
@@ -289,36 +299,44 @@ library ReserveLogic {
 
     //fetching the principal, total stable debt and the avg stable rate
     (
-      vars.principalStableDebt,
-      vars.currentStableDebt,
-      vars.avgStableRate,
-      vars.stableSupplyUpdatedTimestamp
+      vars.principalStableDebt,  //固定利率债务的本金部分
+      vars.currentStableDebt,   //当前的债务总量
+      vars.avgStableRate,  //平均固定利率
+      vars.stableSupplyUpdatedTimestamp  //固定利率债务的最后更新时间
     ) = IStableDebtToken(reserve.stableDebtTokenAddress).getSupplyData();
 
     //calculate the last principal variable debt
+    //计算上一次的浮动利率债务
     vars.previousVariableDebt = scaledVariableDebt.rayMul(previousVariableBorrowIndex);
 
     //calculate the new total supply after accumulation of the index
+    //计算累计指数后的新总供应量
     vars.currentVariableDebt = scaledVariableDebt.rayMul(newVariableBorrowIndex);
 
     //calculate the stable debt until the last timestamp update
+    //计算累积的固定利率利息
     vars.cumulatedStableInterest = MathUtils.calculateCompoundedInterest(
       vars.avgStableRate,
       vars.stableSupplyUpdatedTimestamp,
       timestamp
     );
 
+    //计算之前的固定利率债务
     vars.previousStableDebt = vars.principalStableDebt.rayMul(vars.cumulatedStableInterest);
 
     //debt accrued is the sum of the current debt minus the sum of the debt at the last update
+    //totalDebtAccrued = 当前的浮动利率债务 + 当前的固定利率债务 - 之前的浮动利率债务 - 之前的固定利率债务
     vars.totalDebtAccrued = vars
       .currentVariableDebt
       .add(vars.currentStableDebt)
       .sub(vars.previousVariableDebt)
       .sub(vars.previousStableDebt);
 
+    //乘以储备因子
+    //amountToMint = totalDebtAccrued * reserveFactor
     vars.amountToMint = vars.totalDebtAccrued.percentMul(vars.reserveFactor);
 
+    //如果不为0，那么就铸造呗
     if (vars.amountToMint != 0) {
       IAToken(reserve.aTokenAddress).mintToTreasury(vars.amountToMint, newLiquidityIndex);
     }
@@ -344,20 +362,32 @@ library ReserveLogic {
     uint256 newVariableBorrowIndex = variableBorrowIndex;
 
     //only cumulating if there is any income being produced
+    //只有利息产生时才进行累计计算
     if (currentLiquidityRate > 0) {
+
       uint256 cumulatedLiquidityInterest =
         MathUtils.calculateLinearInterest(currentLiquidityRate, timestamp);
+
+      //newLiquidityIndex =          cumulatedLiquidityInterest                 * liquidityIndex  
+      //                   (（rate * timeDifference / SECONDS_PER_YEAR） + 1  )  * liquidityIndex
       newLiquidityIndex = cumulatedLiquidityInterest.rayMul(liquidityIndex);
+
+      //确保新的流动性指数不会溢出unit128
       require(newLiquidityIndex <= type(uint128).max, Errors.RL_LIQUIDITY_INDEX_OVERFLOW);
 
       reserve.liquidityIndex = uint128(newLiquidityIndex);
 
       //as the liquidity rate might come only from stable rate loans, we need to ensure
       //that there is actual variable debt before accumulating
+      //检查是否有可变债务
       if (scaledVariableDebt != 0) {
+
+        //浮动利率复利因子
         uint256 cumulatedVariableBorrowInterest =
           MathUtils.calculateCompoundedInterest(reserve.currentVariableBorrowRate, timestamp);
+
         newVariableBorrowIndex = cumulatedVariableBorrowInterest.rayMul(variableBorrowIndex);
+        //确保新的可变借贷指数不会溢出unit128
         require(
           newVariableBorrowIndex <= type(uint128).max,
           Errors.RL_VARIABLE_BORROW_INDEX_OVERFLOW

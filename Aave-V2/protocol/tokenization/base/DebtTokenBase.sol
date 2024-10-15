@@ -20,6 +20,7 @@ abstract contract DebtTokenBase is
   VersionedInitializable,
   ICreditDelegationToken
 {
+  //借款额度映射
   mapping(address => mapping(address => uint256)) internal _borrowAllowances;
 
   /**

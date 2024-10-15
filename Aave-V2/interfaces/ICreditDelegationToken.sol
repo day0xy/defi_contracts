@@ -10,6 +10,7 @@ interface ICreditDelegationToken {
   );
 
   /**
+  //将债务代笔委托给用户
    * @dev delegates borrowing power to a user on the specific debt token
    * @param delegatee the address receiving the delegated borrowing power
    * @param amount the maximum amount being delegated. Delegation will still
@@ -19,6 +20,7 @@ interface ICreditDelegationToken {
   function approveDelegation(address delegatee, uint256 amount) external;
 
   /**
+  //返回用户的借款额度
    * @dev returns the borrow allowance of the user
    * @param fromUser The user to giving allowance
    * @param toUser The user to give allowance to

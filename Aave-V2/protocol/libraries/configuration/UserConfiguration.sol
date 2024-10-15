@@ -36,6 +36,7 @@ library UserConfiguration {
    * @param reserveIndex The index of the reserve in the bitmap
    * @param usingAsCollateral True if the user is usin the reserve as collateral, false otherwise
    **/
+  //过位运算更新用户配置对象中的位图，以设置用户是否将特定储备用作抵押品。该函数首先检查储备索引的有效性，然后通过位运算更新位图中的相应位。
   function setUsingAsCollateral(
     DataTypes.UserConfigurationMap storage self,
     uint256 reserveIndex,

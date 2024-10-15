@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 
 interface IScaledBalanceToken {
   /**
+  //返回用户缩放的余额
    * @dev Returns the scaled balance of the user. The scaled balance is the sum of all the
    * updated stored balance divided by the reserve's liquidity index at the moment of the update
    * @param user The user whose balance is calculated

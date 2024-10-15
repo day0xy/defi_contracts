@@ -68,6 +68,7 @@ interface IAaveIncentivesController {
     external;
 
   /**
+  //在任何影响奖励分配的更新中调用
    * @dev Called by the corresponding asset on any update that affects the rewards distribution
    * @param asset The address of the user
    * @param userBalance The balance of the user of the asset in the lending pool
@@ -95,6 +96,7 @@ interface IAaveIncentivesController {
    * @param to Address that will be receiving the rewards
    * @return Rewards claimed
    **/
+
   function claimRewards(
     address[] calldata assets,
     uint256 amount,
@@ -109,6 +111,7 @@ interface IAaveIncentivesController {
    * @param to Address that will be receiving the rewards
    * @return Rewards claimed
    **/
+
   function claimRewardsOnBehalf(
     address[] calldata assets,
     uint256 amount,

@@ -21,6 +21,7 @@ contract AToken is
   IncentivizedERC20('ATOKEN_IMPL', 'ATOKEN_IMPL', 0),
   IAToken
 {
+  //代表可以直接调用库里的函数了
   using WadRayMath for uint256;
   using SafeERC20 for IERC20;
 
@@ -117,16 +118,20 @@ contract AToken is
    * @param amount The amount being burned
    * @param index The new liquidity index of the reserve
    **/
+  //销毁atoken，然后发送基础资产给用户
   function burn(
     address user,
     address receiverOfUnderlying,
     uint256 amount,
     uint256 index
   ) external override onlyLendingPool {
+    //amountScaled = amount / index
+    //为了将金额缩放到一个标准化的单位，确保计算的一致性
     uint256 amountScaled = amount.rayDiv(index);
     require(amountScaled != 0, Errors.CT_INVALID_BURN_AMOUNT);
     _burn(user, amountScaled);
 
+    //这一步发送基础资产到用户
     IERC20(_underlyingAsset).safeTransfer(receiverOfUnderlying, amount);
 
     emit Transfer(user, address(0), amount);
@@ -146,9 +151,10 @@ contract AToken is
     uint256 amount,
     uint256 index
   ) external override onlyLendingPool returns (bool) {
+    //获取用户之前的余额
     uint256 previousBalance = super.balanceOf(user);
 
-    uint256 amountScaled = amount.rayDiv(index);
+    uint256 amountScaled = amount.rayDiv(index); //计算缩放后的金额。rayDiv 是一种高精度的除法操作，通常用于金融计算。
     require(amountScaled != 0, Errors.CT_INVALID_MINT_AMOUNT);
     _mint(user, amountScaled);
 
